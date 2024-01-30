@@ -21,9 +21,9 @@ class _SingleMusicPageState extends State<SingleMusicPage> {
     // TODO: implement initState
     _musicPlayerView.playAudio(context);
     _musicPlayerView.playPauseController.add("playing");
-    setState(() {
+ 
       x();
-    });
+  
     super.initState();
   }
 
