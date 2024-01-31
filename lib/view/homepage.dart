@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:music_player/model_view/homeModelView.dart';
+import 'package:music_player/repository/model.dart';
 import 'package:music_player/resources/appColor.dart';
 import 'package:music_player/resources/components/box.dart';
 import 'package:music_player/resources/components/buildIcons.dart';
 import 'package:music_player/resources/components/buildText.dart';
 import 'package:music_player/resources/components/singleMusic.dart';
+import 'package:music_player/view/singleMusicPage.dart';
+
+import '../model_view/music_player_view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,14 +27,43 @@ class _HomePageState extends State<HomePage>
   TabController? _tabController;
   final List<String> _tabs = ['Songs', 'Artists'];
   final HomeModel _homeModel = HomeModel();
+  final MusicPlayerView _musicPlayerView = MusicPlayerView();
+  void updateUI() {
+    startTimer();
+  }
+
+  void startTimer() {
+    _musicPlayerView.timer =
+        Timer.periodic(const Duration(seconds: 1), (timer) {
+      _musicPlayerView.handleDurationChange();
+    });
+  }
+
+  void stopTimer() {
+    final timer = _musicPlayerView.timer;
+    if (timer != null && timer.isActive) {
+      timer.cancel();
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     _tabController = TabController(length: 2, vsync: this);
     _homeModel.loadSongs();
-    // _homeModel.loadTracks();
+    _musicPlayerView.getSongName();
+    _musicPlayerView.getPlayingPause();
+    getLastPosition();
 
+    updateUI();
     super.initState();
+  }
+
+  Future<void> getLastPosition() async {
+    await _musicPlayerView.handleDurationChange();
+    final x = await _musicPlayerView.getCurrentPosition();
+    print("y $x");
+    setState(() {});
   }
 
   @override
@@ -158,50 +193,116 @@ class _HomePageState extends State<HomePage>
             const Divider(
               thickness: 3,
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  Container(child: const Icon(Icons.music_note)),
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  const Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      BuildText(text: "Music name sss"),
-                      BuildText(text: "Artist name")
-                    ],
-                  ),
-                  const Spacer(),
-                  const Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: 0.6,
-                        backgroundColor: Colors.grey,
-                        valueColor:
-                            AlwaysStoppedAnimation(AppColor.colorsPurple),
-                      ),
-                      InkWell(
-                        child: BuildIcon(
-                          icon: Icons.pause_circle,
-                          color: Colors.black,
-                        ),
-                      )
-                    ],
-                  ),
-                  InkWell(
-                    child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(shape: BoxShape.circle),
-                        child: const BuildIcon(
-                          icon: Icons.skip_next,
-                          color: Colors.black,
-                        )),
-                  )
-                ],
+            InkWell(
+              onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>SingleMusicPage()));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Container(child: const Icon(Icons.music_note)),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StreamBuilder(
+                            stream: _musicPlayerView.songNameController.stream,
+                            builder: (context, snapshot) {
+                              return snapshot.hasData
+                                  ? BuildText(
+                                      text: snapshot.data!.length > 30
+                                          ? snapshot.data!.substring(0, 30)
+                                          : snapshot.data!)
+                                  : const BuildText(text: "");
+                            }),
+                        const BuildText(text: "Artist :Unknown")
+                      ],
+                    ),
+                    const Spacer(),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        StreamBuilder(
+                            stream: _musicPlayerView.durationController.stream,
+                            builder: ((context, snapshot) {
+                              print("snapshot data :${snapshot.data}");
+                              if (snapshot.hasData) {
+                                return CircularProgressIndicator(
+                                  value: snapshot.data,
+                                  backgroundColor: Colors.grey,
+                                  valueColor:
+                                      const AlwaysStoppedAnimation(Colors.black),
+                                );
+                              } else {
+                                return const CircularProgressIndicator(
+                                  value: 0.8,
+                                  backgroundColor: Colors.grey,
+                                  valueColor:
+                                      AlwaysStoppedAnimation(Colors.white),
+                                );
+                              }
+                            })),
+                        StreamBuilder<String>(
+                            stream: _musicPlayerView.playPauseController.stream,
+                            builder: ((context, snapshot) {
+                              if (snapshot.hasData) {
+                                if (snapshot.data == "playing") {
+                                  return InkWell(
+                                    child: const BuildIcon(
+                                        icon: Icons.pause_circle,
+                                        color: Colors.black),
+                                    onTap: () {
+                                      _musicPlayerView.pauseAudio(context);
+                                    },
+                                  );
+                                } else if (snapshot.data == "paused") {
+                                  return InkWell(
+                                      onTap: () {
+                                        _musicPlayerView.playAudio(context);
+                                      },
+                                      child: const BuildIcon(
+                                          icon: Icons.play_circle,
+                                          color: Colors.black));
+                                } else {
+                                  return InkWell(
+                                      onTap: () {
+                                        _musicPlayerView.pauseAudio(context);
+                                      },
+                                      child: const BuildIcon(
+                                          icon: Icons.pause_circle,
+                                          color: Colors.black));
+                                }
+                              } else {
+                                return InkWell(
+                                  child: const BuildIcon(
+                                      icon: Icons.play_circle,
+                                      color: Colors.black),
+                                  onTap: () {
+                                    _musicPlayerView.playAudio(context);
+                                  },
+                                );
+                              }
+                            })),
+                      ],
+                    ),
+                    InkWell(
+                      onTap: () {
+                        _musicPlayerView.handleNextAudio(context);
+                      },
+                      child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(shape: BoxShape.circle),
+                          child: const BuildIcon(
+                            icon: Icons.skip_next,
+                            color: Colors.black,
+                          )),
+                    )
+                  ],
+                ),
               ),
             )
           ],

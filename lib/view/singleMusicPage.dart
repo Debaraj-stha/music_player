@@ -8,8 +8,8 @@ import 'package:music_player/resources/components/buildIcons.dart';
 import 'package:music_player/resources/components/buildText.dart';
 
 class SingleMusicPage extends StatefulWidget {
-  const SingleMusicPage({super.key, required this.track});
-  final Tracks track;
+  const SingleMusicPage({super.key, this.track});
+  final Tracks? track;
   @override
   State<SingleMusicPage> createState() => _SingleMusicPageState();
 }
@@ -21,13 +21,13 @@ class _SingleMusicPageState extends State<SingleMusicPage> {
     // TODO: implement initState
     _musicPlayerView.playAudio(context);
     _musicPlayerView.playPauseController.add("playing");
- 
-      x();
-  
+
+    updateUI();
+
     super.initState();
   }
 
-  x() {
+  updateUI() {
     Timer.periodic(const Duration(seconds: 1), (timer) {
       _musicPlayerView.handleDurationChange();
     });
@@ -78,8 +78,24 @@ class _SingleMusicPageState extends State<SingleMusicPage> {
               const SizedBox(
                 height: 30,
               ),
+              StreamBuilder(
+                  stream: _musicPlayerView.songNameController.stream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return BuildText(
+                        text: snapshot.data!,
+                        style: Theme.of(context)
+                            .primaryTextTheme
+                            .bodyMedium!
+                            .copyWith(
+                              color: Colors.white,
+                            ),
+                      );
+                    }
+                    return Container();
+                  }),
               BuildText(
-                text: widget.track.title,
+                text: widget.track!.title,
                 style: Theme.of(context).primaryTextTheme.bodyMedium!.copyWith(
                       color: Colors.white,
                     ),
