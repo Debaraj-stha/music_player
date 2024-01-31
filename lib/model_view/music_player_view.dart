@@ -22,6 +22,8 @@ class MusicPlayerView extends GetxController {
   StreamController currentPositiingController = StreamController();
   StreamController<String> songNameController = StreamController<String>();
   StreamController<bool> isPlayingController = StreamController<bool>();
+  Stream<String>?stream;
+
   final _sharedPreference = SharedPreferences.getInstance();
   final String _key = "last_track";
   final String _lastSongPositionKey = "song_position";
@@ -196,5 +198,8 @@ class MusicPlayerView extends GetxController {
     final sp = await _sharedPreference;
     double currentPositionValue = sp.getDouble(currenntPosition) ?? 0;
     return currentPositionValue;
+  }
+  initStream(){
+    stream=playPauseController.stream.asBroadcastStream();
   }
 }

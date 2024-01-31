@@ -247,7 +247,7 @@ class _HomePageState extends State<HomePage>
                               }
                             })),
                         StreamBuilder<String>(
-                            stream: _musicPlayerView.playPauseController.stream,
+                            stream: _musicPlayerView.stream,
                             builder: ((context, snapshot) {
                               if (snapshot.hasData) {
                                 if (snapshot.data == "playing") {

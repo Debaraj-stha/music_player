@@ -19,12 +19,19 @@ class _SingleMusicPageState extends State<SingleMusicPage> {
   @override
   void initState() {
     // TODO: implement initState
-    _musicPlayerView.playAudio(context);
-    _musicPlayerView.playPauseController.add("playing");
 
     updateUI();
 
     super.initState();
+  }
+
+  playAudio() {
+    _musicPlayerView.stream!.listen((event) {
+      if (event != "playing") {
+        _musicPlayerView.playAudio(context);
+        _musicPlayerView.playPauseController.add("playing");
+      }
+    });
   }
 
   updateUI() {
@@ -100,6 +107,7 @@ class _SingleMusicPageState extends State<SingleMusicPage> {
                       color: Colors.white,
                     ),
               ),
+
               const SizedBox(
                 height: 30,
               ),
@@ -178,7 +186,7 @@ class _SingleMusicPageState extends State<SingleMusicPage> {
                     },
                   ),
                   StreamBuilder<String>(
-                      stream: _musicPlayerView.playPauseController.stream,
+                      stream: _musicPlayerView.stream,
                       builder: ((context, snapshot) {
                         if (snapshot.hasData) {
                           if (snapshot.data == "playing") {
